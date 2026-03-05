@@ -15,7 +15,7 @@ get_action_items, add_action_item, update_action_item,
 # – Constants —————————————————————–
 
 PASS_THRESHOLD = 80.0
-CELLS = [“Small Parts”, “Medium”, “Large”, “Propeller”, “Battery”]
+CELLS = ["Small Parts", "Medium", "Large", "Propeller", "Battery"]
 WEEK_PHASE_MAP = {
 1: “Sort”, 2: “Set”, 3: “Shine”,
 4: “Standardize”, 5: “Self Discipline”, 6: “Review”,
