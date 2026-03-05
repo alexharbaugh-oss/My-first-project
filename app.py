@@ -12,7 +12,7 @@ init_db, save_audit, get_audits, get_audit_answers,
 get_action_items, add_action_item, update_action_item,
 )
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# – Constants —————————————————————–
 
 PASS_THRESHOLD = 80.0
 CELLS = [“Small Parts”, “Medium”, “Large”, “Propeller”, “Battery”]
@@ -60,7 +60,7 @@ QUESTIONS = {
 ],
 }
 
-# ── Init ──────────────────────────────────────────────────────────────────────
+# – Init –––––––––––––––––––––––––––––––––––
 
 init_db()
 st.set_page_config(page_title=“4S+SD Audit Tracker”, page_icon=“✈️”, layout=“wide”)
@@ -74,9 +74,9 @@ tabs = st.tabs([
 “⬇️ Export”,
 ])
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# – Helpers —————————————————————––
 
-def calc_score(answers: dict) -> dict:
+def calc_score(answers):
 yes = sum(1 for v in answers.values() if v is True)
 no  = sum(1 for v in answers.values() if v is False)
 tot = yes + no
@@ -89,82 +89,69 @@ return {
 “passed”: score >= PASS_THRESHOLD,
 }
 
-def build_pdf(audit: dict, answers: list, linked_items: list) -> BytesIO:
+def build_pdf(audit, answers, linked_items):
 pdf = FPDF()
 pdf.add_page()
 pdf.set_margins(15, 15, 15)
-
-```
-# Header
-pdf.set_font("Helvetica", "B", 18)
-pdf.cell(0, 12, "4S+SD Audit Report", ln=True, align="C")
+pdf.set_font(“Helvetica”, “B”, 18)
+pdf.cell(0, 12, “4S+SD Audit Report”, ln=True, align=“C”)
 pdf.set_draw_color(30, 80, 160)
 pdf.set_line_width(0.8)
 pdf.line(15, pdf.get_y(), 195, pdf.get_y())
 pdf.ln(4)
-
-# Audit details
-pdf.set_font("Helvetica", "", 10)
+pdf.set_font(“Helvetica”, “”, 10)
 details = [
-    ("Cell", audit["cell"]),
-    ("Week", f"{audit['week']} — {audit['phase_label']}"),
-    ("Auditor", audit["auditor"]),
-    ("Date", audit["timestamp"][:10]),
-    ("Score", f"{audit['standardization_score']}%  ({'PASS' if audit['passed'] else 'FAIL'})"),
+(“Cell”, audit[“cell”]),
+(“Week”, str(audit[“week”]) + “ — “ + audit[“phase_label”]),
+(“Auditor”, audit[“auditor”]),
+(“Date”, audit[“timestamp”][:10]),
+(“Score”, str(audit[“standardization_score”]) + “%  (” + (“PASS” if audit[“passed”] else “FAIL”) + “)”),
 ]
 for label, val in details:
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(35, 7, f"{label}:", border=0)
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, val, ln=True)
+pdf.set_font(“Helvetica”, “B”, 10)
+pdf.cell(35, 7, label + “:”, border=0)
+pdf.set_font(“Helvetica”, “”, 10)
+pdf.cell(0, 7, val, ln=True)
 pdf.ln(4)
-
-# Answers by section
-ans_map = {1: "Yes", 0: "No", None: "N/A"}
+ans_map = {1: “Yes”, 0: “No”, None: “N/A”}
 current_section = None
 for row in answers:
-    if row["section"] != current_section:
-        current_section = row["section"]
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_fill_color(220, 230, 245)
-        pdf.cell(0, 8, f"  {current_section}", ln=True, fill=True)
-    pdf.set_font("Helvetica", "", 9)
-    ans_txt = ans_map.get(row["answer"], "N/A")
-    marker  = "✓" if row["answer"] == 1 else ("✗" if row["answer"] == 0 else "—")
-    pdf.cell(12, 6, f"  [{marker}]", border=0)
-    pdf.multi_cell(0, 6, f"{ans_txt}  —  {row['question_text']}")
-
-# Notes
-if audit.get("notes"):
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.set_fill_color(220, 230, 245)
-    pdf.cell(0, 8, "  Notes", ln=True, fill=True)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.multi_cell(0, 6, audit["notes"])
-
-# Linked action items
+if row[“section”] != current_section:
+current_section = row[“section”]
+pdf.set_font(“Helvetica”, “B”, 11)
+pdf.set_fill_color(220, 230, 245)
+pdf.cell(0, 8, “  “ + current_section, ln=True, fill=True)
+pdf.set_font(“Helvetica”, “”, 9)
+ans_txt = ans_map.get(row[“answer”], “N/A”)
+marker  = “Y” if row[“answer”] == 1 else (“N” if row[“answer”] == 0 else “-”)
+pdf.cell(12, 6, “  [” + marker + “]”, border=0)
+pdf.multi_cell(0, 6, ans_txt + “  —  “ + row[“question_text”])
+if audit.get(“notes”):
+pdf.ln(3)
+pdf.set_font(“Helvetica”, “B”, 11)
+pdf.set_fill_color(220, 230, 245)
+pdf.cell(0, 8, “  Notes”, ln=True, fill=True)
+pdf.set_font(“Helvetica”, “”, 9)
+pdf.multi_cell(0, 6, audit[“notes”])
 if linked_items:
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.set_fill_color(220, 230, 245)
-    pdf.cell(0, 8, "  Linked Action Items", ln=True, fill=True)
-    pdf.set_font("Helvetica", "", 9)
-    for item in linked_items:
-        due = item.get("due_date") or "N/A"
-        pdf.multi_cell(0, 6, f"  [{item['status']}] {item['description']}  (Due: {due})")
-
+pdf.ln(3)
+pdf.set_font(“Helvetica”, “B”, 11)
+pdf.set_fill_color(220, 230, 245)
+pdf.cell(0, 8, “  Linked Action Items”, ln=True, fill=True)
+pdf.set_font(“Helvetica”, “”, 9)
+for item in linked_items:
+due = item.get(“due_date”) or “N/A”
+pdf.multi_cell(0, 6, “  [” + item[“status”] + “] “ + item[“description”] + “  (Due: “ + due + “)”)
 buf = BytesIO()
 pdf.output(buf)
 buf.seek(0)
 return buf
-```
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 # TAB 1 — New Audit
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 with tabs[0]:
 st.subheader(“Audit Details”)
@@ -173,22 +160,22 @@ auditor = c1.text_input(“Auditor Name”, placeholder=“Your name”)
 cell    = c2.selectbox(“Cell”, CELLS)
 week    = c3.selectbox(
 “Week”, list(WEEK_PHASE_MAP.keys()),
-format_func=lambda w: f”Week {w} — {WEEK_PHASE_MAP[w]}”
+format_func=lambda w: “Week “ + str(w) + “ — “ + WEEK_PHASE_MAP[w]
 )
 phase = WEEK_PHASE_MAP[week]
-st.info(f”📍 **Phase:** {phase}  |  **Cell:** {cell}  |  **Week:** {week} of 6”)
+st.info(“📍 Phase: “ + phase + “  |  Cell: “ + cell + “  |  Week: “ + str(week) + “ of 6”)
 st.divider()
 
 ```
 all_answers, section_scores, section_qa = {}, {}, {}
 
 for section, questions in QUESTIONS.items():
-    with st.expander(f"**{section}**", expanded=(section == phase)):
+    with st.expander("**" + section + "**", expanded=(section == phase)):
         sec_ans, sec_qa = {}, {}
         for i, q in enumerate(questions):
-            qid = f"{section.lower().replace(' ', '_')}_q{i + 1}"
+            qid = section.lower().replace(" ", "_") + "_q" + str(i + 1)
             ans = st.radio(q, ["Yes", "No", "N/A"], index=2,
-                           key=f"audit_{qid}", horizontal=True)
+                           key="audit_" + qid, horizontal=True)
             val = True if ans == "Yes" else (False if ans == "No" else None)
             sec_ans[qid] = val
             sec_qa[qid]  = (q, val)
@@ -199,7 +186,7 @@ for section, questions in QUESTIONS.items():
         section_scores[section] = pct
         section_qa[section]     = sec_qa
         all_answers.update(sec_ans)
-        st.metric(f"{section} Score", f"{pct}%")
+        st.metric(section + " Score", str(pct) + "%")
 
 st.divider()
 notes   = st.text_area("Overall Notes / Follow-up Actions", height=80)
@@ -208,12 +195,12 @@ score   = summary["standardization_score"]
 verdict = "✅ PASS" if summary["passed"] else "❌ NEEDS WORK"
 
 st.subheader("Standardization Score")
-st.progress(int(score), text=f"{score}% — {verdict}")
+st.progress(int(score), text=str(score) + "% — " + verdict)
 ca, cb, cc, cd = st.columns(4)
 ca.metric("Yes",   summary["answered_yes"])
 cb.metric("No",    summary["answered_no"])
 cc.metric("N/A",   summary["skipped_na"])
-cd.metric("Score", f"{score}%")
+cd.metric("Score", str(score) + "%")
 st.divider()
 
 if st.button("💾 Save Audit Result", type="primary", use_container_width=True):
@@ -233,15 +220,15 @@ if st.button("💾 Save Audit Result", type="primary", use_container_width=True)
             "notes":       notes.strip(),
         }
         save_audit(result)
-        st.success(f"Audit saved! {score}% — {verdict}")
+        st.success("Audit saved! " + str(score) + "% — " + verdict)
         st.balloons()
 ```
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 # TAB 2 — Progress Charts
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 with tabs[1]:
 st.subheader(“Score Progression”)
@@ -257,7 +244,6 @@ else:
     sel_cells = st.multiselect("Show Cells", CELLS, default=CELLS, key="chart_cells")
     df_f = df[df["cell"].isin(sel_cells)]
 
-    # Line chart: score over time per cell
     fig_line = px.line(
         df_f, x="timestamp", y="standardization_score", color="cell",
         markers=True, title="Standardization Score Over Time",
@@ -266,11 +252,10 @@ else:
     )
     fig_line.add_hline(
         y=PASS_THRESHOLD, line_dash="dash", line_color="red",
-        annotation_text=f"Pass Threshold ({PASS_THRESHOLD}%)"
+        annotation_text="Pass Threshold (" + str(PASS_THRESHOLD) + "%)"
     )
     st.plotly_chart(fig_line, use_container_width=True)
 
-    # Bar chart: latest score per cell
     st.subheader("Latest Score per Cell")
     latest = df.sort_values("timestamp").groupby("cell").last().reset_index()
     fig_bar = px.bar(
@@ -284,8 +269,7 @@ else:
     fig_bar.add_hline(y=PASS_THRESHOLD, line_dash="dash", line_color="red")
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Heatmap: cell × week
-    st.subheader("Average Score — Cell × Week")
+    st.subheader("Average Score — Cell x Week")
     pivot = df.pivot_table(
         values="standardization_score", index="cell", columns="week", aggfunc="mean"
     )
@@ -296,25 +280,25 @@ else:
     )
     st.plotly_chart(fig_heat, use_container_width=True)
 
-    # Phase completion tracker
     st.subheader("6-Week Phase Completion per Cell")
     comp_rows = []
     for c in CELLS:
         weeks_done = df[df["cell"] == c]["week"].unique().tolist()
         for w in range(1, 7):
             comp_rows.append({
-                "Cell": c, "Week": f"Wk {w} {WEEK_PHASE_MAP[w]}",
+                "Cell": c,
+                "Week": "Wk " + str(w) + " " + WEEK_PHASE_MAP[w],
                 "Done": "✅" if w in weeks_done else "⬜"
             })
     comp_df = pd.DataFrame(comp_rows).pivot(index="Cell", columns="Week", values="Done")
     st.dataframe(comp_df, use_container_width=True)
 ```
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 # TAB 3 — Action Items
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 with tabs[2]:
 st.subheader(“Action Items”)
@@ -355,7 +339,6 @@ with sub_view:
         status=f_status if f_status != "All" else None,
     )
 
-    # Summary metrics
     all_items = get_action_items()
     m1, m2, m3 = st.columns(3)
     m1.metric("🔴 Open",        sum(1 for i in all_items if i["status"] == "Open"))
@@ -368,35 +351,36 @@ with sub_view:
     else:
         ICONS = {"Open": "🔴", "In Progress": "🟡", "Closed": "🟢"}
         for item in items:
-            icon = ICONS.get(item["status"], "⚪")
+            icon  = ICONS.get(item["status"], "⚪")
             label = item["description"][:70] + ("..." if len(item["description"]) > 70 else "")
-            with st.expander(f"{icon} [{item['cell']}] {label}"):
-                st.write(f"**Section:** {item.get('section') or 'General'}  |  "
-                         f"**Raised by:** {item['raised_by']}  |  **Date:** {item['raised_date']}")
+            with st.expander(icon + " [" + item["cell"] + "] " + label):
+                st.write("**Section:** " + str(item.get("section") or "General") +
+                         "  |  **Raised by:** " + item["raised_by"] +
+                         "  |  **Date:** " + item["raised_date"])
                 if item.get("due_date"):
-                    st.write(f"**Due:** {item['due_date']}")
+                    st.write("**Due:** " + item["due_date"])
                 new_status = st.selectbox(
                     "Status",
                     ["Open", "In Progress", "Closed"],
                     index=["Open", "In Progress", "Closed"].index(item["status"]),
-                    key=f"status_{item['id']}"
+                    key="status_" + str(item["id"])
                 )
                 closed_by = ""
                 if new_status == "Closed":
-                    closed_by = st.text_input("Closed By", key=f"cb_{item['id']}")
+                    closed_by = st.text_input("Closed By", key="cb_" + str(item["id"]))
                 new_notes = st.text_input("Notes", value=item.get("notes", ""),
-                                          key=f"notes_{item['id']}")
-                if st.button("Update", key=f"upd_{item['id']}"):
+                                          key="notes_" + str(item["id"]))
+                if st.button("Update", key="upd_" + str(item["id"])):
                     update_action_item(item["id"], new_status, closed_by, new_notes)
                     st.success("Updated!")
                     st.rerun()
 ```
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 # TAB 4 — Audit History
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 with tabs[3]:
 st.subheader(“Audit History”)
@@ -417,29 +401,29 @@ else:
         ok = "✅" if a["passed"] else "❌"
         ts = a["timestamp"][:10]
         with st.expander(
-            f"{ok} {ts} | {a['cell']} | Week {a['week']} — {a['phase_label']} | {a['standardization_score']}%"
+            ok + " " + ts + " | " + a["cell"] + " | Week " + str(a["week"]) +
+            " — " + a["phase_label"] + " | " + str(a["standardization_score"]) + "%"
         ):
-            st.write(f"**Auditor:** {a['auditor']}  |  **Score:** {a['standardization_score']}%")
+            st.write("**Auditor:** " + a["auditor"] + "  |  **Score:** " + str(a["standardization_score"]) + "%")
             answers = get_audit_answers(a["audit_id"])
             ans_df  = pd.DataFrame(answers)[["section", "question_text", "answer"]]
             ans_df["answer"] = ans_df["answer"].map({1: "✅ Yes", 0: "❌ No"}).fillna("— N/A")
             st.dataframe(ans_df, use_container_width=True, hide_index=True)
             if a.get("notes"):
-                st.write(f"**Notes:** {a['notes']}")
+                st.write("**Notes:** " + a["notes"])
 ```
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 # TAB 5 — Export
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ——————————————————————————
 
 with tabs[4]:
 st.subheader(“Export Options”)
 all_audits = get_audits()
 
 ```
-# JSON bulk download
 st.markdown("### ⬇️ Download All Audit Data (JSON)")
 st.download_button(
     "Download JSON", data=json.dumps(all_audits, indent=2),
@@ -448,13 +432,12 @@ st.download_button(
 )
 st.divider()
 
-# Per-audit PDF export
 st.markdown("### 📄 Generate PDF Audit Report")
 if not all_audits:
     st.info("No audits available yet.")
 else:
     audit_labels = {
-        f"{a['timestamp'][:10]} | {a['cell']} | Week {a['week']} | {a['standardization_score']}%": a
+        a["timestamp"][:10] + " | " + a["cell"] + " | Week " + str(a["week"]) + " | " + str(a["standardization_score"]) + "%": a
         for a in all_audits
     }
     selected = audit_labels[st.selectbox("Select Audit", list(audit_labels.keys()))]
@@ -463,8 +446,8 @@ else:
         answers      = get_audit_answers(selected["audit_id"])
         linked_items = [i for i in get_action_items()
                         if i.get("audit_id") == selected["audit_id"]]
-        buf = build_pdf(selected, answers, linked_items)
-        fname = f"audit_{selected['cell'].replace(' ', '_')}_{selected['timestamp'][:10]}.pdf"
+        buf   = build_pdf(selected, answers, linked_items)
+        fname = "audit_" + selected["cell"].replace(" ", "_") + "_" + selected["timestamp"][:10] + ".pdf"
         st.download_button(
             "⬇️ Download PDF", data=buf,
             file_name=fname, mime="application/pdf",
