@@ -11,6 +11,7 @@ from database import (
     init_db, save_audit, get_audits, get_audit_answers,
     get_action_items, add_action_item, update_action_item,
 )
+from guide import render_guide_tab
 
 # -- Constants -----------------------------------------------------------------
 PASS_THRESHOLD = 80.0
@@ -70,6 +71,7 @@ tabs = st.tabs([
     "🔧 Action Items",
     "📜 Audit History",
     "⬇️ Export",
+    "🏗️ Implementation Guide",
 ])
 
 # -- Helpers -------------------------------------------------------------------
@@ -406,6 +408,7 @@ with tabs[4]:
     st.divider()
 
     st.markdown("### 📄 Generate PDF Audit Report")
+
     if not all_audits:
         st.info("No audits available yet.")
     else:
@@ -426,3 +429,6 @@ with tabs[4]:
                 file_name=fname, mime="application/pdf",
                 use_container_width=True,
             )
+            # TAB 6 — Implementation Guide
+with tabs[5]:
+    render_guide_tab()
