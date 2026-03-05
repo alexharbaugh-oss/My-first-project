@@ -17,61 +17,61 @@ get_action_items, add_action_item, update_action_item,
 PASS_THRESHOLD = 80.0
 CELLS = ["Small Parts", "Medium", "Large", "Propeller", "Battery"]
 WEEK_PHASE_MAP = {
-1: "Sort”, 2: “Set”, 3: “Shine”,
-4: "Standardize”, 5: “Self Discipline”, 6: “Review”,
+1: "Sort", 2: "Set", 3: "Shine",
+4: "Standardize", 5: "Self Discipline", 6: "Review",
 }
 SECTIONS = list(WEEK_PHASE_MAP.values())[:5]
 
 QUESTIONS = {
-"Sort”: [
-“Are all non-essential tools removed from the cell?”,
-“Are red-tagged items identified and moved to the quarantine zone?”,
-“Are only materials needed for current work orders present?”,
-“Are scrap and offcut materials disposed of or returned to stores?”,
-“Are personal items stored away from the work area?”,
+"Sort": [
+"Are all non-essential tools removed from the cell?",
+"Are red-tagged items identified and moved to the quarantine zone?",
+"Are only materials needed for current work orders present?",
+"Are scrap and offcut materials disposed of or returned to stores?",
+"Are personal items stored away from the work area?",
 ],
-“Set”: [
-“Do all tools have a clearly marked designated location (shadow board/label)?”,
-“Are consumables (resin, peel ply, release film) stored in labeled, correct locations?”,
-“Is the layup table surface clear and ready for use?”,
-“Are frequently used tools within arm’s reach of the primary work position?”,
-“Are material carts and trolleys parked in their designated spots?”,
+"Set": [
+"Do all tools have a clearly marked designated location (shadow board/label)?",
+"Are consumables (resin, peel ply, release film) stored in labeled, correct locations?",
+"Is the layup table surface clear and ready for use?",
+"Are frequently used tools within arm’s reach of the primary work position?",
+"Are material carts and trolleys parked in their designated spots?",
 ],
-“Shine”: [
-“Is the layup table free of resin residue and debris?”,
-“Are tools cleaned and returned after each use?”,
-“Are floors in the cell swept and free of trip hazards?”,
-“Are vacuum lines and bagging equipment stored clean and untangled?”,
-“Is the cleaning schedule posted and up to date?”,
+"Shine": [
+"Is the layup table free of resin residue and debris?",
+"Are tools cleaned and returned after each use?",
+"Are floors in the cell swept and free of trip hazards?",
+"Are vacuum lines and bagging equipment stored clean and untangled?",
+"Is the cleaning schedule posted and up to date?",
 ],
-“Standardize”: [
-“Are visual standards (photos, diagrams) posted at each station?”,
-“Do all operators follow the same layup sequence for this cell?”,
-“Are material traceability labels applied consistently?”,
-“Is the audit checklist accessible and in use by all team members?”,
-“Are non-conformances recorded using the standard process?”,
+"Standardize": [
+"Are visual standards (photos, diagrams) posted at each station?",
+"Do all operators follow the same layup sequence for this cell?",
+"Are material traceability labels applied consistently?",
+"Is the audit checklist accessible and in use by all team members?",
+"Are non-conformances recorded using the standard process?",
 ],
-“Self Discipline”: [
-“Are operators completing the daily 5-minute tidy routine without prompting?”,
-“Are previous audit findings actioned and closed out?”,
-“Is the 4S+SD board updated by the team (not just supervisors)?”,
-“Are new team members briefed on 4S+SD expectations?”,
-“Is the cell consistently maintaining scores above the pass threshold?”,
+"Self Discipline": [
+"Are operators completing the daily 5-minute tidy routine without prompting?",
+"Are previous audit findings actioned and closed out?",
+"Is the 4S+SD board updated by the team (not just supervisors)?",
+"Are new team members briefed on 4S+SD expectations?",
+"Is the cell consistently maintaining scores above the pass threshold?",
 ],
 }
 
 # – Init –––––––––––––––––––––––––––––––––––
 
 init_db()
-st.set_page_config(page_title=“4S+SD Audit Tracker”, page_icon=“✈️”, layout=“wide”)
-st.title(“✈️ 4S+SD Audit Tracker — Composites Layup”)
+st.set_page_config(page_title="4S+SD Audit Tracker", page_icon="✈️", layout="wide")
+st.title("✈️ 4S+SD Audit Tracker — Composites Layup")
 
 tabs = st.tabs([
-“📋 New Audit”,
-“📊 Progress Charts”,
-“🔧 Action Items”,
-“📜 Audit History”,
-“⬇️ Export”,
+"📋 New Audit",
+"📊 Progress Charts",
+"🔧 Action Items",
+"📜 Audit History",
+"⬇️ Export",
 ])
 
 # – Helpers —————————————————————––
@@ -82,24 +82,24 @@ no  = sum(1 for v in answers.values() if v is False)
 tot = yes + no
 score = round(yes / tot * 100, 1) if tot else 0.0
 return {
-“answered_yes”: yes, “answered_no”: no,
-“skipped_na”: sum(1 for v in answers.values() if v is None),
-“total_questions”: len(answers),
-“standardization_score”: score,
-“passed”: score >= PASS_THRESHOLD,
+"answered_yes": yes, "answered_no": no,
+"skipped_na": sum(1 for v in answers.values() if v is None),
+"total_questions": len(answers),
+"standardization_score": score,
+"passed": score >= PASS_THRESHOLD,
 }
 
 def build_pdf(audit, answers, linked_items):
 pdf = FPDF()
 pdf.add_page()
 pdf.set_margins(15, 15, 15)
-pdf.set_font(“Helvetica”, “B”, 18)
-pdf.cell(0, 12, “4S+SD Audit Report”, ln=True, align=“C”)
+pdf.set_font("Helvetica", "B", 18)
+pdf.cell(0, 12, "4S+SD Audit Report", ln=True, align="C")
 pdf.set_draw_color(30, 80, 160)
 pdf.set_line_width(0.8)
 pdf.line(15, pdf.get_y(), 195, pdf.get_y())
 pdf.ln(4)
-pdf.set_font(“Helvetica”, “”, 10)
+pdf.set_font("Helvetica", "", 10)
 details = [
 (“Cell”, audit[“cell”]),
 (“Week”, str(audit[“week”]) + “ — “ + audit[“phase_label”]),
