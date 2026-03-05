@@ -17,13 +17,13 @@ get_action_items, add_action_item, update_action_item,
 PASS_THRESHOLD = 80.0
 CELLS = ["Small Parts", "Medium", "Large", "Propeller", "Battery"]
 WEEK_PHASE_MAP = {
-1: “Sort”, 2: “Set”, 3: “Shine”,
-4: “Standardize”, 5: “Self Discipline”, 6: “Review”,
+1: "Sort”, 2: “Set”, 3: “Shine”,
+4: "Standardize”, 5: “Self Discipline”, 6: “Review”,
 }
 SECTIONS = list(WEEK_PHASE_MAP.values())[:5]
 
 QUESTIONS = {
-“Sort”: [
+"Sort”: [
 “Are all non-essential tools removed from the cell?”,
 “Are red-tagged items identified and moved to the quarantine zone?”,
 “Are only materials needed for current work orders present?”,
