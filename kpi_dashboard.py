@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import date, timedelta
 from kpi_database import (
-    init_db, CATEGORIES, PRIORITIES, STATUSES, STOPPAGE_CODES,
+    init_db, seed_initial_data, CATEGORIES, PRIORITIES, STATUSES, STOPPAGE_CODES,
     add_action, get_actions, get_action, update_action, delete_action,
     add_daily_kpi, get_daily_kpis, get_kpi_names_for_action,
     get_all_latest_kpis,
@@ -26,6 +26,7 @@ st.set_page_config(
 )
 
 init_db()
+seed_initial_data()
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -62,18 +63,20 @@ if page == "Dashboard":
                           priority=filter_priority)
 
     # ── Summary metrics ──
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     total = len(actions)
     in_progress = sum(1 for a in actions if a["status"] == "In-Progress")
     study_eff = sum(1 for a in actions if a["status"] == "Study Effectiveness")
-    completed = sum(1 for a in actions if a["status"] == "Completed")
+    done = sum(1 for a in actions if a["status"] == "Completed")
     not_started = sum(1 for a in actions if a["status"] == "Not Started")
+    support_needed = sum(1 for a in actions if a["status"] == "Support Needed")
 
     col1.metric("Total Actions", total)
     col2.metric("In-Progress", in_progress)
     col3.metric("Study Effectiveness", study_eff)
-    col4.metric("Completed", completed)
+    col4.metric("Completed", done)
     col5.metric("Not Started", not_started)
+    col6.metric("Support Needed", support_needed)
 
     # ── Status breakdown by category ──
     if actions:
@@ -87,6 +90,7 @@ if page == "Dashboard":
                                "Completed": "#5cb85c",
                                "Not Started": "#d9534f",
                                "Identified": "#777",
+                               "Support Needed": "#9b59b6",
                                "On Hold": "#999",
                            },
                            category_orders={"category": CATEGORIES})
@@ -138,9 +142,14 @@ if page == "Dashboard":
 
         # ── Actions table ──
         st.markdown("### All Actions")
-        display_cols = ["id", "title", "category", "priority", "status", "owner", "start_date", "due_date"]
-        display_df = pd.DataFrame(actions)[display_cols] if actions else pd.DataFrame()
-        if not display_df.empty:
+        if actions:
+            display_df = pd.DataFrame(actions)
+            display_df["Done?"] = display_df["completed"].apply(lambda x: "YES" if x else "")
+            display_cols = ["id", "title", "category", "priority", "status", "owner",
+                            "support_team", "Done?"]
+            display_df = display_df[display_cols]
+            display_df.columns = ["#", "Task / Project", "Category", "Priority", "Status",
+                                  "Owner", "Support Team", "Done?"]
             st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
         st.info("No actions found. Go to 'Action Tracker' to add your first improvement action.")
@@ -192,6 +201,7 @@ elif page == "Action Tracker":
                 height=120,
             )
             notes = st.text_area("Notes", height=60)
+            completed = st.checkbox("Already Completed?")
 
             submitted = st.form_submit_button("Add Action", type="primary")
             if submitted:
@@ -207,6 +217,7 @@ elif page == "Action Tracker":
                         "target_condition": target_condition,
                         "detailed_actions": detailed_actions,
                         "notes": notes,
+                        "completed": completed,
                         "start_date": start_date.isoformat(),
                         "due_date": due_date.isoformat(),
                     })
@@ -221,11 +232,12 @@ elif page == "Action Tracker":
             st.info("No actions to display.")
         else:
             for action in actions:
+                done_icon = "DONE" if action.get("completed") else ""
                 with st.expander(
-                    f"[{action['priority']}]  {action['title']}  \u2014 {action['status']}  ({action['category']})",
+                    f"{'[DONE] ' if action.get('completed') else ''}[{action['priority']}]  {action['title']}  \u2014 {action['status']}  ({action['category']})",
                     expanded=False,
                 ):
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         new_status = st.selectbox(
                             "Status", STATUSES,
@@ -241,17 +253,49 @@ elif page == "Action Tracker":
                     with col3:
                         new_owner = st.text_input("Owner", value=action["owner"],
                                                    key=f"owner_{action['id']}")
+                    with col4:
+                        new_completed = st.checkbox(
+                            "Completed?",
+                            value=bool(action.get("completed")),
+                            key=f"done_{action['id']}",
+                        )
 
-                    st.markdown("**Current Condition:**")
-                    st.text(action.get("current_condition", "") or "\u2014")
-                    st.markdown("**Target Condition:**")
-                    st.text(action.get("target_condition", "") or "\u2014")
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        new_support = st.text_input(
+                            "Support Team",
+                            value=action.get("support_team", "") or "",
+                            key=f"support_{action['id']}",
+                        )
+                    with col_s2:
+                        new_mgmt = st.text_input(
+                            "Management Tool",
+                            value=action.get("management_tool", "") or "",
+                            key=f"mgmt_{action['id']}",
+                        )
+
                     st.markdown("**Detailed Actions:**")
-                    st.text(action.get("detailed_actions", "") or "\u2014")
+                    new_details = st.text_area(
+                        "Detailed Actions",
+                        value=action.get("detailed_actions", "") or "",
+                        height=150,
+                        key=f"details_{action['id']}",
+                        label_visibility="collapsed",
+                    )
 
-                    if action.get("notes"):
-                        st.markdown("**Notes:**")
-                        st.text(action["notes"])
+                    st.markdown("**Notes:**")
+                    new_notes = st.text_area(
+                        "Notes",
+                        value=action.get("notes", "") or "",
+                        height=80,
+                        key=f"notes_{action['id']}",
+                        label_visibility="collapsed",
+                    )
+
+                    if action.get("current_condition"):
+                        st.markdown(f"**Current Condition:** {action['current_condition']}")
+                    if action.get("target_condition"):
+                        st.markdown(f"**Target Condition:** {action['target_condition']}")
 
                     col_save, col_del = st.columns([3, 1])
                     with col_save:
@@ -260,6 +304,11 @@ elif page == "Action Tracker":
                                 "status": new_status,
                                 "priority": new_priority,
                                 "owner": new_owner,
+                                "support_team": new_support,
+                                "management_tool": new_mgmt,
+                                "detailed_actions": new_details,
+                                "notes": new_notes,
+                                "completed": 1 if new_completed else 0,
                             }
                             if new_status == "Completed" and action["status"] != "Completed":
                                 update_data["completed_date"] = date.today().isoformat()
